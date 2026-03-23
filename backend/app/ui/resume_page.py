@@ -166,12 +166,12 @@ def resume_page():
                         if not version_input.value.strip():
                             ui.notify("請輸入版本名稱", type="warning")
                             return
-                        content_bytes = e.content.read()
+                        content_bytes = await e.file.read()
                         async with httpx.AsyncClient(timeout=30) as client:
                             r = await client.post(
                                 f"{API}/resume/upload",
                                 params={"version_name": version_input.value},
-                                files={"file": (e.name, content_bytes, "application/pdf")},
+                                files={"file": (e.file.name, content_bytes, "application/pdf")},
                             )
                         if r.status_code == 201:
                             ui.notify("上傳成功，AI 解析中...", type="positive")
