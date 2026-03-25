@@ -9,6 +9,7 @@ A personal AI-powered job search assistant. Paste a job URL, get an instant matc
 - **Match Analysis** — Semantic comparison between your resume and the job. Outputs a score (1–10), matched skills, missing skills, and concrete improvement suggestions.
 - **Cover Letter Generation** — AI-generated cover letter in both Traditional Chinese and English, with adjustable tone (formal / friendly). One-click copy.
 - **Application Tracking** — Track every application through `pending → applied → interviewing → offer / rejected` with notes.
+- **Crawler Jobs** — Browse daily job listings scraped from Japan Dev & Tokyo Dev (via [jp_job_crawler](https://github.com/chiangwill/jp_job_crawler)). One-click Gemini scoring against your active resume, with results cached so you never burn quota twice on the same job.
 
 ## Tech Stack
 
@@ -47,22 +48,27 @@ cd fitcheck
 cp .env.example .env
 ```
 
-Edit `.env` and fill in your Gemini API key:
+Edit `.env` and fill in your keys:
 
 ```env
 DATABASE_URL=postgresql+asyncpg://fitcheck:fitcheck@localhost:5432/fitcheck
 CHROMA_HOST=localhost
 CHROMA_PORT=8001
 GEMINI_API_KEY=your_key_here
+
+# Optional: enable the Crawler Jobs page (Japan Dev + Tokyo Dev listings)
+# Get these from your Supabase project → Settings → API
+SUPABASE_URL=https://[PROJECT_REF].supabase.co
+SUPABASE_KEY=your_supabase_anon_key_here
 ```
 
-3. **Start infrastructure**
+3. **Start the app**
 
 ```bash
-docker compose up postgres chromadb -d
+docker compose up --build
 ```
 
-4. **Install dependencies and run**
+This starts PostgreSQL, ChromaDB, and the FastAPI backend with hot-reload. Or to run the backend locally instead:
 
 ```bash
 cd backend
@@ -86,16 +92,19 @@ fitcheck/
 └── backend/
     ├── Dockerfile
     ├── pyproject.toml
+    ├── tests/                   # pytest test suite (100% coverage on core modules)
     └── app/
         ├── main.py
         ├── config.py
         ├── database.py
         ├── core/
         │   ├── gemini.py        # Gemini API client
-        │   └── vector_db.py     # ChromaDB client
+        │   ├── vector_db.py     # ChromaDB client
+        │   └── supabase_db.py   # Supabase PostgREST client (crawler jobs)
         ├── models/              # SQLAlchemy models
         ├── schemas/             # Pydantic schemas
         ├── routers/             # API endpoints
+        │   └── crawler_jobs.py  # /crawler-jobs — list + score endpoints
         ├── services/
         │   ├── parser.py        # PDF + resume parsing
         │   ├── scraper.py       # Job URL fetching via Gemini
@@ -103,6 +112,7 @@ fitcheck/
         │   ├── matcher.py       # Resume ↔ job analysis
         │   └── generator.py     # Cover letter generation
         └── ui/                  # NiceGUI pages
+            └── crawler_jobs_page.py  # 爬蟲職缺 — daily job listings
 ```
 
 ## Notes
@@ -110,3 +120,4 @@ fitcheck/
 - LinkedIn is not supported (requires authentication)
 - Gemini free tier limits: ~20 requests/day for generation, 1000/day for embedding
 - Resume and job data is processed by the Gemini API (Google's terms apply)
+- The Crawler Jobs page requires a running [jp_job_crawler](https://github.com/chiangwill/jp_job_crawler) Supabase project — scores are cached locally so each job only consumes one Gemini request

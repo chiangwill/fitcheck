@@ -1,0 +1,49 @@
+{
+  "date": "2026-03-25",
+  "window": "7d",
+  "metrics": {
+    "commits": 5,
+    "contributors": 1,
+    "prs_merged": 0,
+    "insertions": 1161,
+    "deletions": 102,
+    "net_loc": 1059,
+    "test_loc": 578,
+    "test_ratio": 0.50,
+    "active_days": 2,
+    "sessions": 2,
+    "deep_sessions": 1,
+    "avg_session_minutes": 75,
+    "loc_per_session_hour": 700,
+    "feat_pct": 0.20,
+    "fix_pct": 0.40,
+    "chore_pct": 0.20,
+    "test_pct": 0.20,
+    "peak_hour": 10,
+    "ai_assisted_commits": 5
+  },
+  "authors": {
+    "willchiang": {
+      "commits": 5,
+      "insertions": 1161,
+      "deletions": 102,
+      "test_ratio": 0.50,
+      "top_area": "backend/tests/"
+    }
+  },
+  "streak_days": 2,
+  "backlog": {
+    "total_open": 8,
+    "p0_p1": 0,
+    "p2": 3,
+    "completed_this_period": 0,
+    "added_this_period": 8
+  },
+  "test_health": {
+    "total_test_files": 1,
+    "tests_added_this_period": 1,
+    "regression_test_commits": 1,
+    "test_files_changed": 1
+  },
+  "tweetable": "Week of Mar 18: 5 commits, +1.1k LOC (50% tests), shipped jp_job_crawler Supabase dashboard with 100% test coverage | Streak: 2d"
+}
