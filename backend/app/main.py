@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from nicegui import ui
 
 from app.database import create_tables
+from app.models.crawler_job_status import CrawlerJobStatus  # noqa: F401 — registers model on Base.metadata
 from app.routers import applications as applications_router
 from app.routers import crawler_jobs as crawler_jobs_router
 from app.routers import generate as generate_router
