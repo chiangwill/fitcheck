@@ -15,7 +15,7 @@ class Match(Base):
     job_id: Mapped[int] = mapped_column(Integer, ForeignKey("jobs.id"), nullable=False)
     score: Mapped[float | None] = mapped_column(Float, nullable=True)
     matched_skills: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    missing_skills: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    missing_skills: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     suggestion: Mapped[str | None] = mapped_column(Text, nullable=True)
     cover_letter: Mapped[str | None] = mapped_column(Text, nullable=True)
     cover_letter_en: Mapped[str | None] = mapped_column(Text, nullable=True)

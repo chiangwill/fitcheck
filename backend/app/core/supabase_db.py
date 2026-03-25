@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -47,6 +48,30 @@ async def fetch_all_crawler_jobs() -> list[dict[str, Any]]:
                 "select": _SELECT,
                 "order": "first_seen.desc",
                 "limit": "1000",
+            },
+            timeout=10,
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+
+_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
+
+
+async def batch_fetch_crawler_jobs(ids: list[str]) -> list[dict[str, Any]]:
+    """Fetch multiple crawler jobs by their Supabase IDs in a single request."""
+    if not ids:
+        return []
+    safe_ids = [i for i in ids if _UUID_RE.match(i)]
+    if not safe_ids:
+        return []
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{_base_url()}/jobs",
+            headers=_headers(),
+            params={
+                "select": _SELECT,
+                "id": f"in.({','.join(safe_ids)})",
             },
             timeout=10,
         )
