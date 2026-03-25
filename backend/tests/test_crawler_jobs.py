@@ -1,7 +1,7 @@
 """
 Targeted tests for the crawler jobs integration.
 
-Test 1: Supabase connection — verifies asyncpg connects and returns data
+Test 1: Supabase connection — verifies httpx fetches and returns data
 Test 2: Score caching — verifies a second score call uses cache, not Gemini
 """
 
@@ -10,14 +10,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 
 # ---------------------------------------------------------------------------
-# Test 1: Supabase connection
+# Test 1: Supabase connection (httpx + PostgREST)
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
 async def test_fetch_crawler_jobs_returns_list():
     """
-    fetch_crawler_jobs() connects to Supabase and returns a list of dicts.
-    Uses a mock connection so this runs without a real Supabase URL.
+    fetch_crawler_jobs() calls Supabase PostgREST and returns a list of dicts.
+    Mocks httpx.AsyncClient so this runs without a real Supabase URL.
     """
     fake_row = {
         "id": "abc123",
@@ -36,11 +36,16 @@ async def test_fetch_crawler_jobs_returns_list():
         "first_seen": None,
     }
 
-    mock_conn = AsyncMock()
-    mock_conn.fetch = AsyncMock(return_value=[fake_row])
-    mock_conn.close = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = [fake_row]
 
-    with patch("app.core.supabase_db.asyncpg.connect", return_value=mock_conn):
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get.return_value = mock_response
+
+    with patch("app.core.supabase_db.httpx.AsyncClient", return_value=mock_client):
         from app.core.supabase_db import fetch_crawler_jobs
         result = await fetch_crawler_jobs(days=7)
 
@@ -48,7 +53,6 @@ async def test_fetch_crawler_jobs_returns_list():
     assert len(result) == 1
     assert result[0]["title"] == "Senior Python Engineer"
     assert result[0]["skills"] == ["Python", "FastAPI", "PostgreSQL"]
-    mock_conn.close.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -57,10 +61,12 @@ async def test_fetch_crawler_jobs_handles_connection_error():
     fetch_crawler_jobs() propagates connection errors so the router
     can return a 503 instead of crashing the process.
     """
-    with patch(
-        "app.core.supabase_db.asyncpg.connect",
-        side_effect=Exception("connection refused"),
-    ):
+    mock_client = AsyncMock()
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+    mock_client.get.side_effect = Exception("connection refused")
+
+    with patch("app.core.supabase_db.httpx.AsyncClient", return_value=mock_client):
         from app.core.supabase_db import fetch_crawler_jobs
         with pytest.raises(Exception, match="connection refused"):
             await fetch_crawler_jobs()
@@ -109,22 +115,18 @@ async def test_score_crawler_job_returns_cached_result_without_calling_gemini():
         "skills": ["Python"],
     }
 
-    # Mock DB session to return resume, job, and cached match
+    # Mock DB session: calls arrive in order — resume, job, match
+    resume_result = MagicMock()
+    resume_result.scalar_one_or_none = MagicMock(return_value=fake_resume)
+
+    job_result = MagicMock()
+    job_result.scalar_one_or_none = MagicMock(return_value=fake_local_job)
+
+    match_result = MagicMock()
+    match_result.scalars = MagicMock(return_value=MagicMock(first=MagicMock(return_value=fake_cached_match)))
+
     mock_db = AsyncMock()
-
-    async def mock_execute(stmt):
-        result = MagicMock()
-        # Detect which query is being executed by the statement's string repr
-        stmt_str = str(stmt)
-        if "resume" in stmt_str.lower() or "is_active" in stmt_str.lower():
-            result.scalar_one_or_none = MagicMock(return_value=fake_resume)
-        elif "match" in stmt_str.lower():
-            result.scalar_one_or_none = MagicMock(return_value=fake_cached_match)
-        else:
-            result.scalar_one_or_none = MagicMock(return_value=fake_local_job)
-        return result
-
-    mock_db.execute = mock_execute
+    mock_db.execute = AsyncMock(side_effect=[resume_result, job_result, match_result])
 
     analyze_mock = AsyncMock()
 

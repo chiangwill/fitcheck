@@ -87,8 +87,6 @@ def crawler_jobs_page():
                 elif salary_min:
                     salary_str = f"¥{salary_min:,}+"
 
-                score_state = {"data": None}
-
                 with ui.card().classes("w-full fit-card"):
                     with ui.row().classes("items-start justify-between w-full p-1"):
                         # Left: job info
@@ -138,10 +136,10 @@ def crawler_jobs_page():
                                         r = await client.post(f"{API}/crawler-jobs/{sid}/score")
 
                                     display.clear()
-                                    with display:
+                                    with display:  # noqa: SIM117
                                         if r.status_code == 200:
                                             data = r.json()
-                                            score = data.get("score") or 0
+                                            score = data.get("score") if data.get("score") is not None else 0
                                             color = _score_color(score)
                                             with ui.row().classes("items-baseline gap-1"):
                                                 ui.label(f"{score:.1f}").classes(f"font-black text-2xl text-{color}-500")
@@ -156,7 +154,10 @@ def crawler_jobs_page():
                                         elif r.status_code == 422:
                                             ui.label("頁面無法解析").classes("text-xs text-red-400")
                                         elif r.status_code == 500:
-                                            detail = r.json().get("detail", "")
+                                            try:
+                                                detail = r.json().get("detail", "")
+                                            except Exception:
+                                                detail = ""
                                             if "429" in detail or "rate" in detail.lower():
                                                 ui.label("Gemini 超過每日限額").classes("text-xs text-orange-400")
                                             else:

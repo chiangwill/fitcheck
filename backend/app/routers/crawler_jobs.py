@@ -51,6 +51,8 @@ async def score_crawler_job(supabase_job_id: str, db: AsyncSession = Depends(get
         raise HTTPException(status_code=404, detail="找不到職缺")
 
     url = crawler_job["url"]
+    if not url or not url.startswith("https://"):
+        raise HTTPException(status_code=422, detail="職缺 URL 格式不合法")
 
     # Check if already imported to fitcheck's local DB
     result = await db.execute(select(Job).where(Job.url == url))
@@ -89,7 +91,7 @@ async def score_crawler_job(supabase_job_id: str, db: AsyncSession = Depends(get
         .where(Match.resume_id == resume.id)
         .order_by(Match.created_at.desc())
     )
-    cached = result.scalar_one_or_none()
+    cached = result.scalars().first()
     if cached:
         return {
             "score": cached.score,

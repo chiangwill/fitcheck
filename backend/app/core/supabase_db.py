@@ -46,6 +46,7 @@ async def fetch_all_crawler_jobs() -> list[dict[str, Any]]:
             params={
                 "select": _SELECT,
                 "order": "first_seen.desc",
+                "limit": "1000",
             },
             timeout=10,
         )
