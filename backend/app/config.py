@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     chroma_host: str = "localhost"
     chroma_port: int = 8001
     gemini_api_key: str
+    supabase_url: str = ""
+    supabase_key: str = ""
 
     model_config = {"env_file": "../.env", "extra": "ignore"}
 

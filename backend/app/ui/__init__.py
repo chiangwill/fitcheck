@@ -1,4 +1,5 @@
 from app.ui.applications_page import applications_page
+from app.ui.crawler_jobs_page import crawler_jobs_page
 from app.ui.job_detail_page import job_detail_page
 from app.ui.jobs_page import jobs_page
 from app.ui.match_detail_page import match_detail_page
@@ -13,3 +14,4 @@ def register_pages():
     match_page()
     match_detail_page()
     applications_page()
+    crawler_jobs_page()

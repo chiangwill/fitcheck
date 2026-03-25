@@ -6,6 +6,7 @@ from nicegui import ui
 
 from app.database import create_tables
 from app.routers import applications as applications_router
+from app.routers import crawler_jobs as crawler_jobs_router
 from app.routers import generate as generate_router
 from app.routers import jobs as jobs_router
 from app.routers import match as match_router
@@ -29,6 +30,7 @@ app.include_router(jobs_router.router)
 app.include_router(match_router.router)
 app.include_router(generate_router.router)
 app.include_router(applications_router.router)
+app.include_router(crawler_jobs_router.router)
 
 
 @ui.page("/")

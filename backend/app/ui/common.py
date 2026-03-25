@@ -4,6 +4,7 @@ MENU_ITEMS = [
     ("home",           "首頁",     "/ui"),
     ("description",    "履歷管理", "/ui/resume"),
     ("travel_explore", "職缺解析", "/ui/jobs"),
+    ("radar",          "爬蟲職缺", "/ui/crawler-jobs"),
     ("analytics",      "匹配分析", "/ui/match"),
     ("send",           "投遞追蹤", "/ui/applications"),
 ]
