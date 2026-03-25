@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.supabase_db import fetch_all_crawler_jobs, fetch_crawler_job_by_id, fetch_crawler_jobs
+from app.core.supabase_db import batch_fetch_crawler_jobs, fetch_all_crawler_jobs, fetch_crawler_job_by_id, fetch_crawler_jobs
 from app.database import get_db
+from app.models.crawler_job_status import CrawlerJobStatus
 from app.models.job import Job
 from app.models.match import Match
 from app.models.resume import Resume
@@ -11,6 +13,14 @@ from app.services.matcher import analyze_match
 from app.services.scraper import fetch_and_parse_job
 
 router = APIRouter(prefix="/crawler-jobs", tags=["crawler-jobs"])
+
+
+class BatchScoreRequest(BaseModel):
+    ids: list[str]
+
+
+class StatusRequest(BaseModel):
+    status: str
 
 
 @router.get("")
@@ -22,6 +32,117 @@ async def list_crawler_jobs(all_time: bool = False):
         return await fetch_crawler_jobs()
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Supabase 連線失敗：{e}")
+
+
+@router.post("/scores")
+async def batch_get_scores(body: BatchScoreRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Return cached scores for a list of Supabase job IDs.
+
+    IDs with no cached Match for the active resume are omitted from the response.
+    Three DB round-trips total (not N+1): Supabase batch → local Job → local Match.
+    """
+    if not body.ids:
+        return {}
+    if len(body.ids) > 500:
+        raise HTTPException(status_code=422, detail="Too many IDs (max 500)")
+
+    result = await db.execute(select(Resume).where(Resume.is_active == True))
+    resume = result.scalar_one_or_none()
+    if not resume:
+        raise HTTPException(status_code=404, detail="尚未設定 active 履歷")
+
+    try:
+        supabase_jobs = await batch_fetch_crawler_jobs(body.ids)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Supabase 連線失敗：{e}")
+
+    if not supabase_jobs:
+        return {}
+
+    url_to_id: dict[str, str] = {j["url"]: j["id"] for j in supabase_jobs if j.get("url")}
+    urls = list(url_to_id.keys())
+    if not urls:
+        return {}
+
+    job_rows = await db.execute(select(Job).where(Job.url.in_(urls)))
+    local_jobs = {j.url: j for j in job_rows.scalars().all()}
+    if not local_jobs:
+        return {}
+
+    local_job_ids = [j.id for j in local_jobs.values()]
+    match_rows = await db.execute(
+        select(Match)
+        .where(Match.job_id.in_(local_job_ids))
+        .where(Match.resume_id == resume.id)
+        .order_by(Match.created_at.desc())
+    )
+    job_id_to_match: dict[int, Match] = {}
+    for m in match_rows.scalars().all():
+        if m.job_id not in job_id_to_match:
+            job_id_to_match[m.job_id] = m
+
+    scores: dict[str, dict] = {}
+    for url, local_job in local_jobs.items():
+        match = job_id_to_match.get(local_job.id)
+        if match:
+            supabase_id = url_to_id[url]
+            raw_missing = match.missing_skills
+            if isinstance(raw_missing, dict):
+                missing_skills = list(raw_missing.values())
+            else:
+                missing_skills = raw_missing or []
+            scores[supabase_id] = {
+                "score": match.score,
+                "missing_skills": missing_skills,
+                "cached": True,
+            }
+    return scores
+
+
+@router.get("/statuses")
+async def get_statuses(ids: str = "", db: AsyncSession = Depends(get_db)):
+    """
+    Return known CrawlerJobStatus rows for the requested Supabase job IDs.
+
+    Pass ?ids=id1,id2,id3 — IDs with no status row are omitted from the response.
+    """
+    if not ids:
+        return {}
+    id_list = [i.strip() for i in ids.split(",") if i.strip()]
+    if not id_list:
+        return {}
+    if len(id_list) > 500:
+        raise HTTPException(status_code=422, detail="Too many IDs (max 500)")
+
+    rows = await db.execute(
+        select(CrawlerJobStatus).where(CrawlerJobStatus.supabase_job_id.in_(id_list))
+    )
+    return {row.supabase_job_id: row.status for row in rows.scalars().all()}
+
+
+@router.delete("/{supabase_job_id}/status", status_code=204)
+async def clear_job_status(supabase_job_id: str, db: AsyncSession = Depends(get_db)):
+    """Remove the user-facing status for a crawler job (toggle-off)."""
+    row = await db.get(CrawlerJobStatus, supabase_job_id)
+    if row:
+        await db.delete(row)
+        await db.commit()
+
+
+@router.patch("/{supabase_job_id}/status")
+async def set_job_status(
+    supabase_job_id: str, body: StatusRequest, db: AsyncSession = Depends(get_db)
+):
+    """Upsert the user-facing status for a crawler job."""
+    allowed = {"interested", "applied", "rejected"}
+    if body.status not in allowed:
+        raise HTTPException(status_code=422, detail=f"status must be one of {sorted(allowed)}")
+
+    row = CrawlerJobStatus(supabase_job_id=supabase_job_id, status=body.status)
+    await db.merge(row)
+    await db.commit()
+    return {"supabase_job_id": supabase_job_id, "status": body.status}
 
 
 @router.post("/{supabase_job_id}/score")
