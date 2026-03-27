@@ -8,3 +8,4 @@ dist/
 .coverage
 htmlcov/
 .pytest_cache/
+.gstack/

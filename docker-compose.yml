@@ -38,6 +38,17 @@ services:
       - /app/.venv
     command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-exclude .venv
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
   chroma_data:
