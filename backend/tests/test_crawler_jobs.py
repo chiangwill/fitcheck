@@ -444,10 +444,6 @@ async def test_score_crawler_job_new_job_calls_gemini_and_saves_match():
     job page, calls Gemini, saves a Match, and returns cached=False.
     """
     fake_resume = MagicMock(id=1, raw_text="Python developer", is_active=True)
-    fake_new_job = MagicMock(id=20, url="https://japan.dev/jobs/new",
-                             parsed_json={"title": "New Job"})
-    fake_new_match = MagicMock(score=7.0, matched_skills=["Python"],
-                               missing_skills=[], suggestion="Good fit", id=55)
 
     fake_crawler_job = {"id": "new-id", "url": "https://japan.dev/jobs/new",
                         "title": "New Job", "company": "NewCo", "source": "japan_dev"}

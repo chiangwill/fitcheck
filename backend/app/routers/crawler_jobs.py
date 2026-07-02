@@ -47,7 +47,7 @@ async def batch_get_scores(body: BatchScoreRequest, db: AsyncSession = Depends(g
     if len(body.ids) > 500:
         raise HTTPException(status_code=422, detail="Too many IDs (max 500)")
 
-    result = await db.execute(select(Resume).where(Resume.is_active == True))
+    result = await db.execute(select(Resume).where(Resume.is_active.is_(True)))
     resume = result.scalar_one_or_none()
     if not resume:
         raise HTTPException(status_code=404, detail="尚未設定 active 履歷")
@@ -157,7 +157,7 @@ async def score_crawler_job(supabase_job_id: str, db: AsyncSession = Depends(get
     4. Otherwise run Gemini analysis and save result
     """
     # Active resume
-    result = await db.execute(select(Resume).where(Resume.is_active == True))
+    result = await db.execute(select(Resume).where(Resume.is_active.is_(True)))
     resume = result.scalar_one_or_none()
     if not resume:
         raise HTTPException(status_code=404, detail="尚未設定 active 履歷")

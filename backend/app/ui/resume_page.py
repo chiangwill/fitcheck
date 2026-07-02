@@ -35,7 +35,7 @@ def _resume_detail_dialog(parsed: dict, version_name: str):
                             ui.label(job.get("company", "")).classes("text-sm text-blue-600")
                             bullets = job.get("bullets") or []
                             if not bullets and job.get("description"):
-                                bullets = [l.strip().lstrip("-•· ") for l in job["description"].splitlines() if l.strip()]
+                                bullets = [line.strip().lstrip("-•· ") for line in job["description"].splitlines() if line.strip()]
                             if bullets:
                                 with ui.column().classes("gap-0.5 mt-1"):
                                     for bullet in bullets:

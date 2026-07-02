@@ -15,7 +15,7 @@ router = APIRouter(prefix="/match", tags=["match"])
 @router.post("/{job_id}", response_model=MatchResponse, status_code=201)
 async def create_match(job_id: int, db: AsyncSession = Depends(get_db)):
     # 取得 active resume
-    result = await db.execute(select(Resume).where(Resume.is_active == True))
+    result = await db.execute(select(Resume).where(Resume.is_active.is_(True)))
     resume = result.scalar_one_or_none()
     if not resume:
         raise HTTPException(status_code=404, detail="尚未設定 active 履歷")
