@@ -11,44 +11,52 @@ MENU_ITEMS = [
 
 THEME_CSS = """
 :root {
-    --bg-page:    #f1f5f9;
+    --bg-page:    #f7f6f3;
     --bg-card:    #ffffff;
-    --bg-header:  #ffffff;
-    --text-main:  #1e293b;
-    --text-sub:   #64748b;
-    --border:     #e2e8f0;
-    --accent:     #2563eb;
+    --bg-sidebar: #f7f6f3;
+    --text-main:  #37352f;
+    --text-sub:   #9b9a97;
+    --text-muted: #c4c4c0;
+    --border:     #e9e9e7;
+    --accent:     #2383e2;
 }
 .body--dark {
-    --bg-page:    #0f172a;
-    --bg-card:    #1e293b;
-    --bg-header:  #1e293b;
-    --text-main:  #f1f5f9;
-    --text-sub:   #94a3b8;
-    --border:     #334155;
-    --accent:     #3b82f6;
+    --bg-page:    #191919;
+    --bg-card:    #252525;
+    --bg-sidebar: #1f1f1f;
+    --text-main:  #e9e9e7;
+    --text-sub:   #787774;
+    --text-muted: #4a4a47;
+    --border:     #2f2f2f;
+    --accent:     #529cca;
 }
-.fit-page    { background: var(--bg-page);   min-height: 100vh; }
-.fit-card    { background: var(--bg-card);   border: 1px solid var(--border); border-radius: 12px; }
-.fit-header  { background: var(--bg-header); border-bottom: 1px solid var(--border); }
+
+.fit-page    { background: var(--bg-page); min-height: 100vh; }
+.fit-card    { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; }
+.fit-header  { background: var(--bg-card); border-bottom: 1px solid var(--border); }
 .fit-text    { color: var(--text-main); }
 .fit-subtext { color: var(--text-sub); }
+.fit-muted   { color: var(--text-muted); }
 .fit-divider { border-color: var(--border); }
 
 .stat-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    transition: transform .15s, box-shadow .15s;
+    border-radius: 6px;
+    transition: background 0.1s;
 }
-.stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+.stat-card:hover { background: rgba(0,0,0,0.03); }
+.body--dark .stat-card:hover { background: rgba(255,255,255,0.04); }
+
 .sidebar-item {
-    border-radius: 8px;
-    transition: background .15s;
+    border-radius: 4px;
+    transition: background 0.1s;
     text-decoration: none;
 }
-.sidebar-active { background: rgba(59,130,246,.15) !important; }
-.body--dark .sidebar-active { background: rgba(59,130,246,.25) !important; }
+.sidebar-item:hover { background: rgba(0,0,0,0.06); }
+.body--dark .sidebar-item:hover { background: rgba(255,255,255,0.06); }
+.sidebar-active { background: rgba(0,0,0,0.08) !important; }
+.body--dark .sidebar-active { background: rgba(255,255,255,0.08) !important; }
 """
 
 
@@ -59,28 +67,34 @@ def _inject_theme():
 def sidebar(active: str = ""):
     _inject_theme()
 
-    with ui.left_drawer(fixed=True, value=True).classes("bg-gray-900 pt-5 pb-4").style("border-right: 1px solid #1e293b"):
-        with ui.column().classes("px-3 gap-1 w-full"):
-            with ui.row().classes("items-center px-2 mb-5"):
-                ui.label("✦ FitCheck").classes("text-lg font-black text-white")
+    with ui.left_drawer(fixed=True, value=True).style(
+        "background: var(--bg-sidebar); border-right: 1px solid var(--border); padding: 20px 0 16px;"
+    ):
+        with ui.column().classes("px-3 gap-0.5 w-full"):
+            with ui.row().classes("items-center px-2 mb-6"):
+                ui.label("✦ FitCheck").classes("text-base font-bold fit-text")
 
             for icon, label, path in MENU_ITEMS:
                 is_active = active == path
                 with ui.element("a").props(f'href="{path}"').classes(
                     f"sidebar-item w-full {'sidebar-active' if is_active else ''}"
                 ).style("text-decoration:none"):
-                    with ui.row().classes("items-center gap-3 px-3 py-2.5 w-full").style(
-                        f"color: {'#93c5fd' if is_active else '#94a3b8'}"
-                    ):
-                        ui.icon(icon).classes("text-lg")
-                        ui.label(label).classes("text-sm font-medium")
+                    with ui.row().classes("items-center gap-2.5 px-2 py-1.5 w-full"):
+                        ui.icon(icon).classes("text-base").style(
+                            f"color: {'var(--text-main)' if is_active else 'var(--text-sub)'}"
+                        )
+                        ui.label(label).classes("text-sm font-medium").style(
+                            f"color: {'var(--text-main)' if is_active else 'var(--text-sub)'}"
+                        )
 
 
 def page_layout(title: str, subtitle: str, active_path: str):
     sidebar(active_path)
     with ui.column().classes("fit-page w-full"):
-        with ui.row().classes("fit-header w-full items-center px-8 py-5").style("gap:12px"):
-            with ui.column().classes("gap-0.5 flex-1"):
-                ui.label(title).classes("fit-text text-xl font-bold")
-                ui.label(subtitle).classes("fit-subtext text-sm")
-        return ui.column().classes("w-full p-8 gap-6")
+        content = ui.column().classes("w-full px-10 py-8 gap-6")
+        with content:
+            with ui.column().classes("gap-0.5 mb-2"):
+                ui.label(title).classes("fit-text text-2xl font-bold")
+                if subtitle:
+                    ui.label(subtitle).classes("fit-subtext text-sm")
+        return content
