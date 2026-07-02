@@ -1,0 +1,31 @@
+# --- uv & Python 虛擬環境 ---
+.venv/             # uv 預設的虛擬環境目錄（極大，內含數千個檔案）
+venv/              # 其他常見虛擬環境名稱
+.uv/               # uv 的工具快取
+uv.lock            # uv 的鎖定檔（類似 package-lock.json，非常長，掃描很吃 token）
+
+# --- Python 編譯與緩存 ---
+__pycache__/       # 編譯後的位元組碼
+*.py[cod]          # .pyc, .pyo, .pyd 檔案
+*$py.class
+.pytest_cache/     # 測試框架快取
+.mypy_cache/       # 類型檢查快取
+.ruff_cache/       # Ruff 格式化工具快取
+.ipynb_checkpoints/ # Jupyter Notebook 快取
+
+# --- 打包與分發 ---
+build/
+dist/
+*.egg-info/
+.eggs/
+nosetests.xml
+coverage.xml
+.coverage
+htmlcov/
+
+# --- 其他通用建議 ---
+.git/
+.env
+.secrets
+*.log
+*.sql              # 如果有大型資料庫導出檔
